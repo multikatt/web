@@ -69,21 +69,6 @@ export const columns: EventsTableColumn[] = [
     },
   },
   {
-    id: 'maturityHeight',
-    label: 'maturity height',
-    category: 'general',
-    render: ({ data: { maturityHeight } }) => {
-      if (!maturityHeight) {
-        return null
-      }
-      return (
-        <Text size="12" ellipsis>
-          {maturityHeight.toLocaleString()}
-        </Text>
-      )
-    },
-  },
-  {
     id: 'timestamp',
     label: 'timestamp',
     category: 'general',
@@ -155,39 +140,6 @@ export const columns: EventsTableColumn[] = [
         return null
       }
       return <ValueCopyable size="12" value={contractId} label="contract ID" />
-    },
-  },
-  {
-    id: 'outputId',
-    label: 'output ID',
-    category: 'general',
-    render: ({ data: { outputId } }) => {
-      if (!outputId) {
-        return null
-      }
-      return <ValueCopyable size="12" value={outputId} label="output ID" />
-    },
-  },
-  {
-    id: 'netAddress',
-    label: 'net address',
-    category: 'general',
-    render: ({ data: { netAddress } }) => {
-      if (!netAddress) {
-        return null
-      }
-      return <ValueCopyable size="12" value={netAddress} type="ip" />
-    },
-  },
-  {
-    id: 'publicKey',
-    label: 'public key',
-    category: 'general',
-    render: ({ data: { publicKey } }) => {
-      if (!publicKey) {
-        return null
-      }
-      return <ValueCopyable size="12" value={publicKey} label="public key" />
     },
   },
 ]

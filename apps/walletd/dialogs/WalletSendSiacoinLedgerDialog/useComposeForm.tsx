@@ -8,6 +8,8 @@ import {
   ConfigFields,
   FieldSiacoin,
   FieldText,
+  FieldNumber,
+  FieldSelect,
 } from '@siafoundation/design-system'
 import { useForm } from 'react-hook-form'
 import { useCallback, useMemo } from 'react'
@@ -19,15 +21,19 @@ const fee = toHastings(0.00393)
 
 const defaultValues = {
   address: '',
+  mode: 'siacoin' as 'siacoin' | 'siafund',
   siacoin: undefined as BigNumber,
+  siafund: undefined as BigNumber,
   includeFee: false,
 }
 
 function getFields({
-  balance,
+  balanceSc,
+  balanceSf,
   fee,
 }: {
-  balance: BigNumber
+  balanceSc: BigNumber
+  balanceSf: BigNumber
   fee: BigNumber
 }): ConfigFields<typeof defaultValues, never> {
   return {
@@ -42,17 +48,52 @@ function getFields({
         },
       },
     },
+    mode: {
+      type: 'select',
+      title: 'Mode',
+      options: [
+        { value: 'siacoin', label: 'Siacoin' },
+        { value: 'siafund', label: 'Siafund' },
+      ],
+      validation: {
+        required: 'required',
+      },
+    },
     siacoin: {
-      type: 'text',
+      type: 'siacoin',
       title: 'Siacoin',
       placeholder: '100',
       validation: {
-        required: 'required',
         validate: {
-          gtz: (value: BigNumber) =>
-            !new BigNumber(value || 0).isZero() || 'must be greater than zero',
-          balance: (value: BigNumber) =>
-            balance.gte(toHastings(value || 0).plus(fee)) ||
+          required: (value: BigNumber, values) =>
+            values.mode !== 'siacoin' || !!value || 'required',
+          gtz: (value: BigNumber, values) =>
+            values.mode !== 'siacoin' ||
+            !new BigNumber(value || 0).isZero() ||
+            'must be greater than zero',
+          balance: (value: BigNumber, values) =>
+            values.mode !== 'siacoin' ||
+            balanceSc.gte(toHastings(value || 0).plus(fee)) ||
+            'not enough funds in wallet',
+        },
+      },
+    },
+    siafund: {
+      type: 'number',
+      title: 'Siafunds',
+      decimalsLimit: 0,
+      placeholder: '100',
+      validation: {
+        validate: {
+          required: (value, values) =>
+            values.mode !== 'siafund' || !!value || 'required',
+          gtz: (value: BigNumber, values) =>
+            values.mode !== 'siafund' ||
+            value?.gt(0) ||
+            'must be greater than zero',
+          balance: (value: BigNumber, values) =>
+            values.mode !== 'siafund' ||
+            (balanceSc?.gte(fee) && balanceSf?.gte(value)) ||
             'not enough funds in wallet',
         },
       },
@@ -68,47 +109,51 @@ function getFields({
 type FormData = {
   address: string
   siacoin: BigNumber
+  siafund: number
+  mode: 'siacoin' | 'siafund'
   fee: BigNumber
   includeFee: boolean
 }
 
 type Props = {
   onComplete: (data: FormData) => void
-  balance?: BigNumber
+  balanceSc?: BigNumber
+  balanceSf?: BigNumber
 }
 
-export function useComposeForm({ balance, onComplete }: Props) {
+export function useComposeForm({ balanceSc, balanceSf, onComplete }: Props) {
   const form = useForm({
     mode: 'all',
     defaultValues,
   })
 
   const fields = getFields({
-    balance,
+    balanceSc,
+    balanceSf,
     fee,
   })
 
   const onValid = useCallback(
     async (values: typeof defaultValues) => {
-      if (!values.siacoin) {
-        return
-      }
-      const siacoin = values.includeFee
-        ? toHastings(values.siacoin).minus(fee)
-        : toHastings(values.siacoin)
+      const sc = new BigNumber(values.siacoin || 0)
+      const sf = new BigNumber(values.siafund || 0)
 
-      if (!balance) {
-        return
-      }
+      const siacoin = values.includeFee
+        ? toHastings(sc).minus(fee)
+        : toHastings(sc)
+
+      const siafund = sf.toNumber()
 
       onComplete({
         includeFee: values.includeFee,
         address: values.address,
         fee,
+        mode: values.mode,
         siacoin,
+        siafund,
       })
     },
-    [onComplete, balance]
+    [onComplete]
   )
 
   const handleSubmit = useMemo(
@@ -117,11 +162,15 @@ export function useComposeForm({ balance, onComplete }: Props) {
   )
 
   const siacoin = form.watch('siacoin')
+  const mode = form.watch('mode')
   const includeFee = form.watch('includeFee')
   const sc = toHastings(siacoin || 0)
 
   const el = (
     <div className="flex flex-col gap-4">
+      {balanceSf.gt(0) && (
+        <FieldSelect size="medium" form={form} fields={fields} name="mode" />
+      )}
       <FieldText
         size="medium"
         form={form}
@@ -129,16 +178,33 @@ export function useComposeForm({ balance, onComplete }: Props) {
         name="address"
         autoComplete="off"
       />
-      <FieldSiacoin size="medium" form={form} fields={fields} name="siacoin" />
-      <div className="flex items-center">
-        <FieldSwitch size="small" form={form} fields={fields} name="includeFee">
-          <Text>Include fee</Text>
-          <InfoTip>
-            Include or exclude the network fee from the above transaction value.
-          </InfoTip>
-        </FieldSwitch>
-        <div className="flex flex-1" />
-      </div>
+      {mode === 'siacoin' ? (
+        <>
+          <FieldSiacoin
+            size="medium"
+            form={form}
+            fields={fields}
+            name="siacoin"
+          />
+          <div className="flex items-center">
+            <FieldSwitch
+              size="small"
+              form={form}
+              fields={fields}
+              name="includeFee"
+            >
+              <Text>Include fee</Text>
+              <InfoTip>
+                Include or exclude the network fee from the above transaction
+                value.
+              </InfoTip>
+            </FieldSwitch>
+            <div className="flex flex-1" />
+          </div>
+        </>
+      ) : (
+        <FieldNumber size="medium" form={form} fields={fields} name="siafund" />
+      )}
       <div className="flex flex-col gap-2 my-1">
         <div className="flex gap-2 justify-between items-center">
           <Text color="verySubtle">Network fee</Text>
@@ -151,17 +217,19 @@ export function useComposeForm({ balance, onComplete }: Props) {
             />
           </div>
         </div>
-        <div className="flex justify-between gap-2 items-center">
-          <Text color="verySubtle">Total</Text>
-          <div className="flex relative top-[-0.5px]">
-            <ValueSc
-              size="14"
-              value={includeFee ? sc : sc.plus(fee)}
-              variant="value"
-              dynamicUnits={false}
-            />
+        {mode === 'siacoin' && (
+          <div className="flex justify-between gap-2 items-center">
+            <Text color="verySubtle">Total</Text>
+            <div className="flex relative top-[-0.5px]">
+              <ValueSc
+                size="14"
+                value={includeFee ? sc : sc.plus(fee)}
+                variant="value"
+                dynamicUnits={false}
+              />
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   )

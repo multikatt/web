@@ -7,7 +7,10 @@ import {
 import { getWalletWasm } from './wasm'
 import { stripPrefix } from '@siafoundation/design-system'
 import { AddressData } from '../contexts/addresses/types'
-import { addUnlockConditionsAndSignatures, getUtxoAndAddress } from './sign'
+import {
+  addUnlockConditionsAndSignatures,
+  getSiacoinUtxoAndAddress,
+} from './sign'
 
 export function signTransactionSeed({
   seed,
@@ -52,7 +55,7 @@ export function signTransactionSeed({
     const id = stripPrefix(idPrefixed)
 
     // find the utxo and corresponding address
-    const { address, error: utxoAddressError } = getUtxoAndAddress({
+    const { address, error: utxoAddressError } = getSiacoinUtxoAndAddress({
       id,
       addresses,
       siacoinOutputs,

@@ -6,6 +6,8 @@ import { Receipt } from './Receipt'
 type Props = {
   data: {
     address: string
+    mode: 'siacoin' | 'siafund'
+    siafund: number
     siacoin: BigNumber
     fee: BigNumber
   }
@@ -13,14 +15,16 @@ type Props = {
 }
 
 export function Done({
-  data: { address, siacoin, fee },
+  data: { address, siacoin, siafund, mode, fee },
   transactionId,
 }: Props) {
   return (
     <div className="flex flex-col gap-4">
       <Receipt
         address={address}
+        mode={mode}
         siacoin={siacoin}
+        siafund={siafund}
         fee={fee}
         transactionId={transactionId}
       />

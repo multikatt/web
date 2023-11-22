@@ -19,14 +19,18 @@ type Step = 'compose' | 'send' | 'done'
 
 export type SendData = {
   address: string
+  mode: 'siacoin' | 'siafund'
   siacoin: BigNumber
+  siafund: number
   fee: BigNumber
   includeFee: boolean
 }
 
 const emptySendData: SendData = {
   address: '',
+  mode: 'siacoin',
   siacoin: new BigNumber(0),
+  siafund: 0,
   fee: new BigNumber(0),
   includeFee: false,
 }
@@ -55,14 +59,20 @@ export function WalletSendSiacoinLedgerDialog({
     },
   })
 
-  const siacoinBalance = useMemo(
+  const balanceSc = useMemo(
     () => new BigNumber(balance.data?.siacoins || 0),
+    [balance.data]
+  )
+
+  const balanceSf = useMemo(
+    () => new BigNumber(balance.data?.siafunds || 0),
     [balance.data]
   )
 
   // Form for each step
   const compose = useComposeForm({
-    balance: siacoinBalance,
+    balanceSc,
+    balanceSf,
     onComplete: (data) => {
       setData((d) => ({
         ...d,
@@ -113,7 +123,7 @@ export function WalletSendSiacoinLedgerDialog({
         }
         onOpenChange(val)
       }}
-      title="Send siacoin"
+      title="Send"
       onSubmit={controls ? controls.handleSubmit : undefined}
       controls={
         controls?.form && (

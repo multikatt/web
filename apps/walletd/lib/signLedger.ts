@@ -1,9 +1,17 @@
-import { SiacoinElement, Transaction } from '@siafoundation/react-walletd'
+import {
+  SiacoinElement,
+  SiafundElement,
+  Transaction,
+} from '@siafoundation/react-walletd'
 import { getWalletWasm } from './wasm'
 import { stripPrefix } from '@siafoundation/design-system'
 import { AddressData } from '../contexts/addresses/types'
 import { LedgerDevice } from '../contexts/ledger/types'
-import { addUnlockConditionsAndSignatures, getUtxoAndAddress } from './sign'
+import {
+  addUnlockConditionsAndSignatures,
+  getSiacoinUtxoAndAddress,
+  getSiafundUtxoAndAddress,
+} from './sign'
 
 export async function signTransactionLedger({
   device,
@@ -11,12 +19,14 @@ export async function signTransactionLedger({
   toSign,
   addresses,
   siacoinOutputs,
+  siafundOutputs,
 }: {
   device: LedgerDevice
   transaction: Transaction
   toSign: string[]
   addresses: AddressData[]
   siacoinOutputs: SiacoinElement[]
+  siafundOutputs: SiafundElement[]
 }): Promise<{ transaction?: Transaction; error?: string }> {
   if (!addresses) {
     return { error: 'No addresses' }
@@ -30,6 +40,7 @@ export async function signTransactionLedger({
     toSign,
     addresses,
     siacoinOutputs,
+    siafundOutputs,
   })
 
   if (error) {
@@ -40,27 +51,44 @@ export async function signTransactionLedger({
   for (const [i, idPrefixed] of toSign.entries()) {
     const id = stripPrefix(idPrefixed)
 
+    let utxoAddress: AddressData = undefined
+    let utxoError: string = undefined
     // find the utxo and corresponding address
-    const { address, error: utxoAddressError } = getUtxoAndAddress({
+    const getUtxoResponse = getSiacoinUtxoAndAddress({
       id,
       addresses,
       siacoinOutputs,
     })
-    if (utxoAddressError) {
-      return { error: utxoAddressError }
+    if (getUtxoResponse.error) {
+      const sfUtxo = getSiafundUtxoAndAddress({
+        id,
+        addresses,
+        siafundOutputs,
+      })
+      if (sfUtxo.error) {
+        utxoError = sfUtxo.error
+      } else {
+        utxoAddress = sfUtxo.address
+      }
+    } else {
+      utxoAddress = getUtxoResponse.address
+    }
+
+    if (utxoError) {
+      return { error: utxoError }
     }
 
     // This function generates the signature and adds it to the existing transaction
-    const { error } = await signTransactionIndex({
+    const signTxnResponse = await signTransactionIndex({
       device,
       transaction,
       signatureIndex: i,
-      keyIndex: address.index,
+      keyIndex: utxoAddress.index,
     })
 
-    if (error) {
+    if (signTxnResponse.error) {
       return {
-        error,
+        error: signTxnResponse.error,
       }
     }
   }

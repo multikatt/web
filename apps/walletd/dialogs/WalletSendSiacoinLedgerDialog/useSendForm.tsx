@@ -22,7 +22,9 @@ const defaultValues = {
 
 type SendData = {
   address: string
+  mode: 'siacoin' | 'siafund'
   siacoin: BigNumber
+  siafund: number
   fee: BigNumber
   includeFee: boolean
 }
@@ -57,7 +59,7 @@ function getFields(): ConfigFields<typeof defaultValues, never> {
 }
 
 export function useSendForm({ data, onConfirm }: Props) {
-  const { address, siacoin, fee } = data || {}
+  const { address, siacoin, siafund, mode, fee } = data || {}
   const form = useForm({
     mode: 'all',
     defaultValues,
@@ -129,7 +131,9 @@ export function useSendForm({ data, onConfirm }: Props) {
     setWaitingForUser(true)
     const { signedTransaction, error } = await fundAndSign({
       address,
+      mode,
       siacoin,
+      siafund,
       fee,
     })
     if (error) {
@@ -139,7 +143,7 @@ export function useSendForm({ data, onConfirm }: Props) {
       form.setValue('isSigned', true)
     }
     setWaitingForUser(false)
-  }, [form, fundAndSign, address, siacoin, fee])
+  }, [form, fundAndSign, mode, address, siacoin, siafund, fee])
 
   const el = (
     <div className="flex flex-col gap-4">
@@ -160,7 +164,13 @@ export function useSendForm({ data, onConfirm }: Props) {
           />
         </div>
       </div>
-      <Receipt address={address} siacoin={siacoin} fee={fee} />
+      <Receipt
+        mode={mode}
+        address={address}
+        siacoin={siacoin}
+        siafund={siafund}
+        fee={fee}
+      />
     </div>
   )
 

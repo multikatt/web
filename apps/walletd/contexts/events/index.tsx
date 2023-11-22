@@ -4,8 +4,6 @@ import {
   useServerFilters,
 } from '@siafoundation/design-system'
 import {
-  WalletEventMinerPayout,
-  WalletEventTransaction,
   useWalletEvents,
   useWalletSubscribe,
   useWalletTxPool,
@@ -76,7 +74,7 @@ export function useEventsMain() {
       return null
     }
     const dataTxPool: EventData[] = responseTxPool.data.map((e) => ({
-      id: e.ID,
+      id: e.id,
       timestamp: 0,
       pending: true,
       type: e.type,
